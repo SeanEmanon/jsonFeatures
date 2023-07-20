@@ -1,0 +1,9 @@
+# created by virtualenv automatically
+venv/*
+jsons/*
+23521.json
+FriPa.csv
+output.csv
+qt30.csv
+zlataProject.rar
+.idea/*
