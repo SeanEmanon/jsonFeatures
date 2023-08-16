@@ -1,6 +1,94 @@
 import json
 import re
 import csv
+#  import gensim
+
+discourse_markers = [
+    'about',
+    'accordingly',
+    'additionaly',
+    'after',
+    'afterward',
+    'afterwards',
+    'albeit',
+    'also',
+    'alternatively',
+    'although',
+    'and',
+    'as',
+    'because',
+    'before',
+    'besides',
+    'beyond',
+    'both',
+    'but',
+    'by',
+    'consequently',
+    'conversely',
+    'despite',
+    'earlier',
+    'else',
+    'except',
+    'finally',
+    'for',
+    'from',
+    'further',
+    'furthermore',
+    'given',
+    'hence',
+    'however',
+    'if',
+    'in',  # I am not sure if that is considered a discourse marker. Double-check
+    'indeed',
+    'instead',
+    'later',
+    'lest',
+    'like',
+    'likewise',
+    'meantime',
+    'meanwhile',
+    'moreover',
+    'nevertheless',
+    'next',
+    'nonetheless',
+    'nor',
+    'on',  # not a discourse marker in phrasal verbs such as "get on"
+    'once',
+    'only',
+    'or',
+    'plus',
+    'previously',
+    'rather',
+    'regardless',
+    'separately',
+    'similarly',
+    'simultaneously',
+    'since',
+    'so',
+    'specifically',
+    'still',
+    'subsequently',
+    'then',
+    'thereafter',
+    'thereby',
+    'though',
+    'thus',
+    'till',
+    'ultimately',
+    'unless',
+    'until',
+    'upon',
+    'whatever',
+    'when',
+    'whenever',
+    'where',
+    'whereas',
+    'whether',
+    'while',
+    'with',
+    'without',
+    'yet'
+]
 
 HEADER_ROW = [
     "Testrun",
@@ -57,6 +145,56 @@ def extract_node_ids(s):
     return matches
 
 
+def get_statistics(text):
+    #  words = gensim.utils.simple_preprocess(str(text), deacc=True, min_len=1)
+    #  above is legacy code, use with gensim library when there's a need to split text with spans
+    words = text.split()
+    # Number of discourse indicators
+    discourse_markers_count = 0
+    epistemic_markers_count = []
+    for word in words:
+        if word in discourse_markers:
+            discourse_markers_count += 1
+            # Count epistemic expressions
+            epistemic_markers_count.extend(re.findall(
+                r'(?:I|We|we|One|one)(?:\s\w+)?(?:\s\w+)?\s(?:believes?|think|thinks|means?|worry|worries|know|guesse?s?|assumes?|wonders?|feels?)\b(?:that)?',
+                text))
+            epistemic_markers_count.extend(re.findall(
+                r'(?:I|We|we|One|one)\s(?:don\'t|\sdoesn\'t\sdo\snot|\sdoes\snot)\s(?:believe|think|mean|worry|know|guess|assume|wonder|feel)\b(?:that)?',
+                text))
+            epistemic_markers_count.extend(
+                re.findall(r'(?:It|it)\sis\s(?:believed|known|assumed|thought)\b(?:that)?', text))
+            epistemic_markers_count.extend(
+                re.findall(r'(?:I|We|we)\s(?:am|are|was|were)(?:\sjust)?\s(?:thinking|guessing|wondering)\b(?:that)?',
+                           text))
+            epistemic_markers_count.extend(
+                re.findall(r'(?:I\'m|[Ww]e\'re)(?:\sjust)?\s(?:thinking|guessing|wondering)\b(?:that)?', text))
+            epistemic_markers_count.extend(
+                re.findall(r'(?:I|We|we|One|one)(?:\s\w+)?\s(?:do|does)\snot\s(?:believe?|think|know)\b(?:that)?',
+                           text))
+            epistemic_markers_count.extend(
+                re.findall(r'(?:I|We|we|One|one)\swould(?:\s\w+)?(?:\snot)?\ssay\b(?:that)?', text))
+            epistemic_markers_count.extend(
+                re.findall(r'(?:I\sam|I\'m)(?:\s\w+)?\s(?:afraid|sure|confident)\b(?:that)?', text))
+            epistemic_markers_count.extend(re.findall(
+                r'(?:My|my|Our|our)\s(?:personal\s)?(?:experience|opinion|belief|view|knowledge|worry|worries|concerns?|guesse?s?|position|perception)(?:\son\s\w+)?\s(?:is|are)\b(?:that)?',
+                text))
+            epistemic_markers_count.extend(re.findall(r'[Ii]n\s(?:my|our)(?:\s\w+)?\s(?:view|opinion)\b', text))
+            epistemic_markers_count.extend(re.findall(r'[Fr]rom\s(?:my|our)\s(?:point\sof\sview|perspective)\b', text))
+            epistemic_markers_count.extend(re.findall(r'As\sfar\sas\s(?:I|We|we)\s(?:am|are)\sconcerned', text))
+            epistemic_markers_count.extend(
+                re.findall(r'(?:I|We|we|One|one)\s(?:can|could|may|might)(?:\s\w+)?\sconclude\b(?:that)?', text))
+            epistemic_markers_count.extend(re.findall(r'I\s(?:am\swilling\sto|must)\ssay\b(?:that)?', text))
+            epistemic_markers_count.extend(re.findall(r'"One\s(?:can|could|may|might)\ssay\b(?:that)?', text))
+            epistemic_markers_count.extend(re.findall(r'[Oo]ne\s(?:can|could|may|might)\ssay\b(?:that)?', text))
+            epistemic_markers_count.extend(re.findall(r'[Ii]t\sis\s(?:obvious|(?:un)?clear)\b', text))
+            epistemic_markers_count.extend(re.findall(r'[Ii]t(?:\sjust)?\s(?:seems|feels|looks)', text))
+            epistemic_markers_count.extend(re.findall(r'[Pp]ersonally\s(?:for\sme|speaking)', text))
+            epistemic_markers_count.extend(re.findall(r'[Ff]rankly|[Hh]onestly|[Cc]learly', text))
+
+    return discourse_markers_count, len(epistemic_markers_count)
+
+
 with open('output.csv', 'a', encoding='utf-8') as f:
     csv_writer = csv.writer(f)
     csv_writer.writerow(HEADER_ROW)
@@ -73,10 +211,15 @@ for i in csv_FriPa[1:]:  # first two rows are examples (15.08.2023)
     response_json_ID = ""
     question_json_ID = ""
     response_text = i[9]
-    response_length = len(response_text)
+    statistics = get_statistics(response_text)
+    response_dm_count = statistics[0]
+    response_em_count = statistics[1]
+    response_length = len(response_text.split())  # count the ammount of words
     answer_part = i[4]
     question_part = i[2]
     node_list = []
+    response_loc_count = 0
+    response_assertion_count = 0
     # looking for corpus in qt30 map
     date_indexes_qt30 = find_indexes(csv_qt30, date_fripa)
     for d in date_indexes_qt30:
@@ -91,6 +234,18 @@ for i in csv_FriPa[1:]:  # first two rows are examples (15.08.2023)
                 except FileNotFoundError:
                     print("File " + json_corpus + " does not exist.")
                 node_list = extract_node_ids(resp_json)  # extracted all nodes referring to text
+                response_loc_count = len(node_list)
+                edges_from_locutions = []
+                #  First, we collect all the edges that contain our locution nodes in their fromID
+                for edge in json_data['AIF']['edges']:
+                    fromID = edge["fromID"]
+                    toID = edge["toID"]
+                    if fromID in node_list:
+                        edges_from_locutions.append(toID)
+                #  Now, we find all nodes to where our edges are going, to check if it is Assertion
+                for node in json_data["AIF"]["nodes"]:
+                    if node["text"] == "Asserting" and node["nodeID"] in edges_from_locutions:
+                        response_assertion_count += 1
         # same search, but now for the questions
         if csv_qt30[d][9] == question_part or csv_qt30[d][9] == "part " + question_part:
             if len(csv_qt30[d][11]) <= 6:  # there are texts instead of corpus numbers sometimes in the column
@@ -108,5 +263,9 @@ for i in csv_FriPa[1:]:  # first two rows are examples (15.08.2023)
             answer_part,
             response_text,
             node_list,
-            response_length
+            response_length,
+            response_loc_count,
+            response_dm_count,
+            response_em_count,
+            response_assertion_count
         ])
