@@ -3,6 +3,8 @@ import re
 import csv
 #  import gensim
 
+QUESTION_TYPES = ['Pure Questioning', 'Rhetorical Questioning', 'Assertive Questioning']
+
 discourse_markers = [
     'about',
     'accordingly',
@@ -220,6 +222,12 @@ for i in csv_FriPa[1:]:  # first two rows are examples (15.08.2023)
     node_list = []
     response_loc_count = 0
     response_assertion_count = 0
+    response_question_count = 0
+    response_MA_count = 0
+    response_RA_count = 0
+    response_CA_count = 0
+    response_unconnected_count = 0
+    response_DefaultIlloc_count = 0
     # looking for corpus in qt30 map
     date_indexes_qt30 = find_indexes(csv_qt30, date_fripa)
     for d in date_indexes_qt30:
@@ -235,18 +243,66 @@ for i in csv_FriPa[1:]:  # first two rows are examples (15.08.2023)
                     print("File " + json_corpus + " does not exist.")
                 node_list = extract_node_ids(resp_json)  # extracted all nodes referring to text
                 response_loc_count = len(node_list)
-                edges_from_locutions = []
+                nodes_YA_from_locutions = []
                 #  First, we collect all the edges that contain our locution nodes in their fromID
                 for edge in json_data['AIF']['edges']:
                     fromID = edge["fromID"]
                     toID = edge["toID"]
                     if fromID in node_list:
-                        edges_from_locutions.append(toID)
+                        nodes_YA_from_locutions.append(toID)
                 #  Now, we find all nodes to where our edges are going, to check if it is Assertion
                 for node in json_data["AIF"]["nodes"]:
-                    if node["text"] == "Asserting" and node["nodeID"] in edges_from_locutions:
+                    if node["text"] == "Asserting" and node["nodeID"] in nodes_YA_from_locutions:
                         response_assertion_count += 1
-        # same search, but now for the questions
+                    if node["text"] in QUESTION_TYPES and node["nodeID"] in nodes_YA_from_locutions:
+                        response_question_count += 1
+                #  creating a search for I-nodes to later find connected CA, MA and RA nodes
+                nodes_I_from_YA = []
+                for edge in json_data['AIF']['edges']:
+                    fromID = edge["fromID"]
+                    toID = edge["toID"]
+                    if fromID in nodes_YA_from_locutions:
+                        nodes_I_from_YA.append(toID)
+                for node in json_data["AIF"]["nodes"]:
+                    if node["nodeID"] in nodes_I_from_YA and node["type"] != "I":
+                        nodes_I_from_YA.remove(node["nodeID"])
+                nodes_MA_from_I = []
+                nodes_RA_from_I = []
+                nodes_CA_from_I = []
+                end_nodes = []
+                unconnected_nodes = nodes_I_from_YA
+                #  searching nodes and those with types RA, MA, CA are appended to an array
+                for edge in json_data['AIF']['edges']:
+                    fromID = edge["fromID"]
+                    toID = edge["toID"]
+                    if fromID in nodes_I_from_YA:
+                        end_nodes.append(toID)
+                        unconnected_nodes.remove(fromID)
+                response_unconnected_count = len(unconnected_nodes)
+                for node in json_data["AIF"]["nodes"]:
+                    if node["nodeID"] in end_nodes:
+                        if node["type"] == "MA":
+                            nodes_MA_from_I.append(node["nodeID"])
+                        elif node["type"] == "RA":
+                            nodes_RA_from_I.append(node["nodeID"])
+                        elif node["type"] == "CA":
+                            nodes_CA_from_I.append(node["nodeID"])
+                response_MA_count = len(nodes_MA_from_I)
+                response_RA_count = len(nodes_RA_from_I)
+                response_CA_count = len(nodes_CA_from_I)
+                #  search for all incoming edges in I-nodes to filter for Default Illocutings
+                nodes_to_MA = []
+                default_illocutings_nodes = []
+                for edge in json_data['AIF']['edges']:
+                    fromID = edge["fromID"]
+                    toID = edge["toID"]
+                    if toID in nodes_MA_from_I:
+                        nodes_to_MA.append(fromID)
+                for node in json_data["AIF"]["nodes"]:
+                    if node["nodeID"] in nodes_to_MA and node["text"] == "Default Illocuting":
+                        default_illocutings_nodes.append(node)
+                response_DefaultIlloc_count = len(default_illocutings_nodes)
+        # same search for json ID in qt30 file, but now for the questions
         if csv_qt30[d][9] == question_part or csv_qt30[d][9] == "part " + question_part:
             if len(csv_qt30[d][11]) <= 6:  # there are texts instead of corpus numbers sometimes in the column
                 json_corpus = csv_qt30[d][11]
@@ -267,5 +323,11 @@ for i in csv_FriPa[1:]:  # first two rows are examples (15.08.2023)
             response_loc_count,
             response_dm_count,
             response_em_count,
-            response_assertion_count
+            response_assertion_count,
+            response_question_count,
+            response_MA_count,
+            response_RA_count,
+            response_CA_count,
+            response_unconnected_count,
+            response_DefaultIlloc_count
         ])
