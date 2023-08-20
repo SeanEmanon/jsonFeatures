@@ -228,6 +228,7 @@ for i in csv_FriPa[1:]:  # first two rows are examples (15.08.2023)
     response_CA_count = 0
     response_unconnected_count = 0
     response_DefaultIlloc_count = 0
+    response_rs_count = 0
     # looking for corpus in qt30 map
     date_indexes_qt30 = find_indexes(csv_qt30, date_fripa)
     for d in date_indexes_qt30:
@@ -244,6 +245,7 @@ for i in csv_FriPa[1:]:  # first two rows are examples (15.08.2023)
                 node_list = extract_node_ids(resp_json)  # extracted all nodes referring to text
                 response_loc_count = len(node_list)
                 nodes_YA_from_locutions = []
+                print("opened json:" + json_corpus)
                 #  First, we collect all the edges that contain our locution nodes in their fromID
                 for edge in json_data['AIF']['edges']:
                     fromID = edge["fromID"]
@@ -256,6 +258,9 @@ for i in csv_FriPa[1:]:  # first two rows are examples (15.08.2023)
                         response_assertion_count += 1
                     if node["text"] in QUESTION_TYPES and node["nodeID"] in nodes_YA_from_locutions:
                         response_question_count += 1
+                        #  searching for reported speech assuming that L to L situations are unique
+                    if node["type"] == "L" and node["nodeID"] in nodes_YA_from_locutions:
+                        response_rs_count += 1  # wrong
                 #  creating a search for I-nodes to later find connected CA, MA and RA nodes
                 nodes_I_from_YA = []
                 for edge in json_data['AIF']['edges']:
@@ -281,6 +286,7 @@ for i in csv_FriPa[1:]:  # first two rows are examples (15.08.2023)
                 response_unconnected_count = len(unconnected_nodes)
                 for node in json_data["AIF"]["nodes"]:
                     if node["nodeID"] in end_nodes:
+                        print(node["type"] + node["nodeID"])
                         if node["type"] == "MA":
                             nodes_MA_from_I.append(node["nodeID"])
                         elif node["type"] == "RA":
@@ -329,5 +335,6 @@ for i in csv_FriPa[1:]:  # first two rows are examples (15.08.2023)
             response_RA_count,
             response_CA_count,
             response_unconnected_count,
-            response_DefaultIlloc_count
+            response_DefaultIlloc_count,
+            response_rs_count
         ])
