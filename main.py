@@ -120,7 +120,6 @@ HEADER_ROW = [
 with open("FriPa_new.csv") as fp:
     reader = csv.reader(fp, delimiter=",", quotechar='"')
     csv_FriPa = [row for row in reader]
-    # print(csv_FriPa)
 
 with open("qt30.csv") as fp:
     reader = csv.reader(fp, delimiter=",", quotechar='"')
@@ -245,22 +244,20 @@ for i in csv_FriPa[1:]:  # first two rows are examples (15.08.2023)
                 node_list = extract_node_ids(resp_json)  # extracted all nodes referring to text
                 response_loc_count = len(node_list)
                 nodes_YA_from_locutions = []
-                print("opened json:" + json_corpus)
                 #  First, we collect all the edges that contain our locution nodes in their fromID
                 for edge in json_data['AIF']['edges']:
                     fromID = edge["fromID"]
                     toID = edge["toID"]
                     if fromID in node_list:
                         nodes_YA_from_locutions.append(toID)
-                #  Now, we find all nodes to where our edges are going, to check if it is Assertion
+                #  Now, we find all nodes where our edges are going to, to check if it is Assertion
                 for node in json_data["AIF"]["nodes"]:
+                    if node["nodeID"] in nodes_YA_from_locutions and node["type"] != "YA":
+                        nodes_YA_from_locutions.remove(node["nodeID"])
                     if node["text"] == "Asserting" and node["nodeID"] in nodes_YA_from_locutions:
                         response_assertion_count += 1
                     if node["text"] in QUESTION_TYPES and node["nodeID"] in nodes_YA_from_locutions:
                         response_question_count += 1
-                        #  searching for reported speech assuming that L to L situations are unique
-                    if node["type"] == "L" and node["nodeID"] in nodes_YA_from_locutions:
-                        response_rs_count += 1  # wrong
                 #  creating a search for I-nodes to later find connected CA, MA and RA nodes
                 nodes_I_from_YA = []
                 for edge in json_data['AIF']['edges']:
@@ -271,6 +268,9 @@ for i in csv_FriPa[1:]:  # first two rows are examples (15.08.2023)
                 for node in json_data["AIF"]["nodes"]:
                     if node["nodeID"] in nodes_I_from_YA and node["type"] != "I":
                         nodes_I_from_YA.remove(node["nodeID"])
+                        #  searching for reported speech assuming that L to L situations are unique
+                        if node["type"] == "L":
+                            response_rs_count += 1
                 nodes_MA_from_I = []
                 nodes_RA_from_I = []
                 nodes_CA_from_I = []
@@ -286,7 +286,6 @@ for i in csv_FriPa[1:]:  # first two rows are examples (15.08.2023)
                 response_unconnected_count = len(unconnected_nodes)
                 for node in json_data["AIF"]["nodes"]:
                     if node["nodeID"] in end_nodes:
-                        print(node["type"] + node["nodeID"])
                         if node["type"] == "MA":
                             nodes_MA_from_I.append(node["nodeID"])
                         elif node["type"] == "RA":
