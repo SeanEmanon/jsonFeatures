@@ -153,7 +153,6 @@ def get_statistics(text):
     # Number of discourse indicators
     discourse_markers_count = 0
     epistemic_markers_count = []
-    print(words)
     for word in words:
         if word in discourse_markers:
             discourse_markers_count += 1
@@ -284,6 +283,14 @@ for i in csv_FriPa[1:]:  # first two rows are examples (15.08.2023)
                         end_nodes.append(toID)
                         if fromID in unconnected_nodes:
                             unconnected_nodes.remove(fromID)
+                unconnected_nodes_total = unconnected_nodes.copy()
+                for node in unconnected_nodes_total:
+                    counter_to = 0
+                    for edge in json_data['AIF']['edges']:
+                        if node == edge["toID"]:
+                            counter_to += 1
+                    if counter_to != 1:
+                        unconnected_nodes.remove(node)
                 response_unconnected_count = len(unconnected_nodes)
                 for node in json_data["AIF"]["nodes"]:
                     if node["nodeID"] in end_nodes:
