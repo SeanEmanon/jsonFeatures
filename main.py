@@ -113,7 +113,8 @@ HEADER_ROW = [
     "response_CA_count",
     "response_unconnected_count",  # unconnected propositions in the answer
     "response_DefaultIlloc_count",
-    "response_rs_count"  # reported speech count
+    "response_rs_count",  # reported speech count
+    "Resp_ranking"
 ]
 
 # Read CSV file
@@ -133,10 +134,9 @@ def find_indexes(lst, target, current_indexes=[]):
             # If the item is a sublist, recursively call the function
             sub_indexes = find_indexes(item, target, current_indexes + [index])
             indexes.extend(sub_indexes)
-        elif item == target:
+        elif item.lower() == target:
             # If the item is the target string, add the current index
             indexes.append(current_indexes[-1])
-
     return list(set(indexes))
 
 
@@ -202,9 +202,39 @@ with open('output.csv', 'a', encoding='utf-8') as f:
 
 for i in csv_FriPa[1:]:  # first two rows are examples (15.08.2023)
     resp_json = i[11]
+    if i[0] == "22July2021":  # this piece is used to break before going on further data 25.08.2023
+        break
     if resp_json == "":  # if no Resp_json exist, we skip it - the stance is different
+        if len(i[4].split()) != 1:
+            with open('output.csv', 'a', encoding='utf-8') as f:
+                csv_writer = csv.writer(f)
+                csv_writer.writerow([
+                    i[0],
+                    i[1],
+                    'question json id',
+                    i[2],
+                    i[3],
+                    'response json id',
+                    'response parts',
+                    i[9],
+                    'node list',
+                    len(i[9].split()),
+                    'response_loc_count',
+                    'response_dm_count',
+                    'response_em_count',
+                    'response_assertion_count',
+                    'response_question_count',
+                    'response_MA_count',
+                    'response_RA_count',
+                    'response_CA_count',
+                    'response_unconnected_count',
+                    'response_DefaultIlloc_count',
+                    'response_rs_count',
+                    i[13]
+                ])
         continue
     date_fripa = "cutietestrun" + i[0].lower()
+    date_fripa_s = "cutiestestrun" + i[0].lower()
     question_number = i[1]
     answer_number = i[3]
     answer_speaker = i[8]
@@ -227,8 +257,12 @@ for i in csv_FriPa[1:]:  # first two rows are examples (15.08.2023)
     response_unconnected_count = 0
     response_DefaultIlloc_count = 0
     response_rs_count = 0
+    Resp_ranking = i[13]
     # looking for corpus in qt30 map
     date_indexes_qt30 = find_indexes(csv_qt30, date_fripa)
+    # some of the rows have cutieStestrun in them. Next line calls a function again in that case
+    if not date_indexes_qt30:
+        date_indexes_qt30 = find_indexes(csv_qt30, date_fripa_s)
     for d in date_indexes_qt30:
         # search for json_ids using parts for answers
         if csv_qt30[d][9] == answer_part or csv_qt30[d][9] == "part " + answer_part:
@@ -343,5 +377,6 @@ for i in csv_FriPa[1:]:  # first two rows are examples (15.08.2023)
             response_CA_count,
             response_unconnected_count,
             response_DefaultIlloc_count,
-            response_rs_count
+            response_rs_count,
+            Resp_ranking
         ])
