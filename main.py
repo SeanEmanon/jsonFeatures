@@ -118,7 +118,7 @@ HEADER_ROW = [
 ]
 
 # Read CSV file
-with open("FriPa_new.csv") as fp:
+with open("FriPa_new_dub.csv") as fp:
     reader = csv.reader(fp, delimiter=",", quotechar='"')
     csv_FriPa = [row for row in reader]
 
@@ -141,7 +141,7 @@ def find_indexes(lst, target, current_indexes=[]):
 
 
 def extract_node_ids(s):
-    pattern = r'id=\\"node(\d+_\d+)\\"'
+    pattern = r'(\d+_\d+)'
     matches = re.findall(pattern, s)
     return matches
 
@@ -157,8 +157,8 @@ def get_statistics(text):
         if word in discourse_markers:
             discourse_markers_count += 1
     # Count epistemic expressions
-    epistemic_markers_count.extend(re.findall(  # really know and that may mean - are those EM?
-        r'(?:I|We|we|One|one)?(?:\s\w+)?(?:\s\w+)?\s(?:believes?|think|thinks|means?|worry|worries|know|guesse?s?|assumes?|wonders?|feels?)\b(?:that)?',
+    epistemic_markers_count.extend(re.findall(
+        r'(?:I|We|we|One|one|They|they)(?:\s\w+)?(?:\s\w+)?\s(?:believes?|think|thinks|means?|worry|worries|knows?|guesse?s?|assumes?|wonders?|feels?)\b(?:that)?',
         text))
     epistemic_markers_count.extend(re.findall(
         r'(?:I|We|we|One|one)\s(?:don\'t|\sdoesn\'t\sdo\snot|\sdoes\snot)\s(?:believe|think|mean|worry|know|guess|assume|wonder|feel)\b(?:that)?',
@@ -202,8 +202,6 @@ with open('output.csv', 'a', encoding='utf-8') as f:
 
 for i in csv_FriPa[1:]:  # first two rows are examples (15.08.2023)
     resp_json = i[11]
-    if i[0] == "22July2021":  # this piece is used to break before going on further data 25.08.2023
-        break
     if resp_json == "":  # if no Resp_json exist, we skip it - the stance is different
         if len(i[4].split()) != 1:
             with open('output.csv', 'a', encoding='utf-8') as f:
