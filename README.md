@@ -1,0 +1,2 @@
+In the latest version of the program the output is leaving empty those lines which have several response parts.
+If you want to use the output file with text supplements instead of blanks, refer to Release version.
